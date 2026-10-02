@@ -119,7 +119,7 @@ th{background:var(--navy);color:#fff}.c{text-align:center}
 <script>
 /* Logo asli: letakkan file logo.png (tanpa diubah) di folder yang sama dengan index.html */
 /* ISI alamat Firebase Realtime Database di sini, contoh: "https://nama-project-default-rtdb.asia-southeast1.firebasedatabase.app" */
-const FB_URL="";
+const FB_URL="https://safety-performance-cdc-plant-2-default-rtdb.asia-southeast1.firebasedatabase.app";
 const FB=FB_URL.replace(/\/+$/,"");
 async function fbGet(){try{const r=await fetch(FB+"/kecelakaan.json",{cache:"no-store"});if(!r.ok)return undefined;const j=await r.json();return j?Object.values(j):null}catch(e){return undefined}}
 async function fbPut(id,v){if(!FB)return true;try{const r=await fetch(`${FB}/kecelakaan/${id}.json`,{method:"PUT",body:JSON.stringify(v)});return r.ok}catch(e){return false}}
