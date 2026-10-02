@@ -118,6 +118,13 @@ th{background:var(--navy);color:#fff}.c{text-align:center}
 </div>
 <script>
 /* Logo asli: letakkan file logo.png (tanpa diubah) di folder yang sama dengan index.html */
+/* ISI alamat Firebase Realtime Database di sini, contoh: "https://nama-project-default-rtdb.asia-southeast1.firebasedatabase.app" */
+const FB_URL="";
+const FB=FB_URL.replace(/\/+$/,"");
+async function fbGet(){try{const r=await fetch(FB+"/kecelakaan.json",{cache:"no-store"});if(!r.ok)return undefined;const j=await r.json();return j?Object.values(j):null}catch(e){return undefined}}
+async function fbPut(id,v){if(!FB)return true;try{const r=await fetch(`${FB}/kecelakaan/${id}.json`,{method:"PUT",body:JSON.stringify(v)});return r.ok}catch(e){return false}}
+async function fbDel(id){if(!FB)return true;try{const r=await fetch(`${FB}/kecelakaan/${id}.json`,{method:"DELETE"});return r.ok}catch(e){return false}}
+async function fbSetAll(){try{const o={};data.forEach(d=>o[d.id]=d);await fetch(FB+"/kecelakaan.json",{method:"PUT",body:JSON.stringify(o)})}catch(e){}}
 const LOGO='<img src="logo.png" alt="Astra Otoparts" onerror="this.outerHTML=\'<span class=logot>ASTRA <b>otoparts</b></span>\'">';
 const USERS={admin:{p:"admin",r:"admin"},dashboard:{p:"cdc123",r:"dashboard"}};
 const KEY="cdc2_kecelakaan",BLN=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
@@ -136,12 +143,14 @@ function digits(n,col){const s=String(Math.max(0,n)).padStart(2,"0");
 function load(){try{data=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){data=[]}}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}}
 async function remote(){try{const r=await fetch("data.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return null;const j=await r.json();return Array.isArray(j)?j:null}catch(e){return null}}
-async function init(){load();const j=await remote();if(j&&(role!=="admin"||!data.length)){data=j;if(role==="admin")persist()}render()}
+async function init(){load();
+ if(FB){const r=await fbGet();if(r!==undefined){if(r===null&&role==="admin"&&data.length){await fbSetAll()}else{data=r||[];persist()}render();return}}
+ const j=await remote();if(j&&(role!=="admin"||!data.length)){data=j;if(role==="admin")persist()}render()}
 function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 async function login(){const u=$("u").value.trim(),x=USERS[u];
  if(x&&x.p===$("p").value){role=x.r;$("login").classList.add("hide");$("app").classList.remove("hide");
   $("tabs").classList.toggle("hide",role!=="admin");tab(1);$("who").textContent=u;$("role").textContent=role;
-  await init();timer=setInterval(()=>{if(role==="dashboard")init()},300000)}
+  await init();timer=setInterval(()=>{if(role==="dashboard"||(FB&&role==="admin"&&$("modal").classList.contains("hide")))init()},FB?30000:300000)}
  else $("err").textContent="Username atau password salah."}
 function logout(){role=null;clearInterval(timer);if(document.fullscreenElement)document.exitFullscreen();$("app").classList.add("hide");$("login").classList.remove("hide");$("u").value=$("p").value="";$("err").textContent=""}
 function fs(){try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}catch(e){}}
@@ -166,18 +175,19 @@ function render(){
   $("pg").innerHTML=tp>1?`<button ${pg==1?"disabled":""} onclick="go(${pg-1})">&lsaquo; Sebelumnya</button>`+Array.from({length:tp},(_,i)=>`<button class="${i+1==pg?"on":""}" onclick="go(${i+1})">${i+1}</button>`).join("")+`<button ${pg==tp?"disabled":""} onclick="go(${pg+1})">Berikutnya &rsaquo;</button>`:"";
  }
 }
-function tab(n){$("pgD").classList.toggle("hide",n==2);$("adm").classList.toggle("hide",n!=2||role!=="admin");$("t1").classList.toggle("on",n==1);$("t2").classList.toggle("on",n==2);if(n==2)render()}
+function tab(n){$("pgD").classList.toggle("hide",n==2);$("adm").classList.toggle("hide",n!=2||role!=="admin");$("t1").classList.toggle("on",n==1);$("t2").classList.toggle("on",n==2);if(n==2)init()}
 function go(p){pg=p;render()}
 function openForm(){editId=null;$("ftitle").textContent="Tambah Kecelakaan";$("f_n").value=$("f_k").value="";$("f_t").value=new Date().toISOString().slice(0,10);$("f_j").value="Ringan";$("f_h").value=0;$("ferr").textContent="";$("modal").classList.remove("hide")}
 function closeForm(){$("modal").classList.add("hide");editId=null}
-function save(){const n=$("f_n").value.trim(),t=$("f_t").value;
+async function save(){const n=$("f_n").value.trim(),t=$("f_t").value;
  if(!n||!t){$("ferr").textContent="Nama karyawan dan tanggal wajib diisi.";return}
  const r={nama:n,tgl:t,jenis:$("f_j").value,hari:Math.max(0,+$("f_h").value||0),ket:$("f_k").value.trim()};
- if(editId)data=data.map(d=>d.id===editId?{...d,...r}:d);else data.push({id:Date.now().toString(36),...r});
- persist();closeForm();render()}
+ let item;if(editId){data=data.map(d=>d.id===editId?(item={...d,...r}):d)}else{item={id:Date.now().toString(36),...r};data.push(item)}
+ persist();closeForm();render();
+ if(!(await fbPut(item.id,item)))alert("Gagal menyimpan ke Firebase. Periksa koneksi internet dan rules database.")}
 function edit(id){const d=data.find(x=>x.id===id);if(!d)return;editId=id;$("ftitle").textContent="Edit Kecelakaan";$("ferr").textContent="";
  $("f_n").value=d.nama;$("f_t").value=d.tgl;$("f_j").value=d.jenis;$("f_h").value=d.hari;$("f_k").value=d.ket;$("modal").classList.remove("hide")}
-function del(id){if(confirm("Hapus data ini?")){data=data.filter(d=>d.id!==id);persist();render()}}
+async function del(id){if(confirm("Hapus data ini?")){data=data.filter(d=>d.id!==id);persist();render();if(!(await fbDel(id)))alert("Gagal menghapus di Firebase. Periksa koneksi internet dan rules database.")}}
 function dl(){const rows=[...data].sort((a,b)=>a.tgl.localeCompare(b.tgl)).map((d,i)=>({No:i+1,"Nama Karyawan":d.nama,"Tanggal Kejadian":d.tgl,"Jenis Kecelakaan":d.jenis,"Jumlah Hari Hilang (hari)":d.hari,Keterangan:d.ket}));
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Kecelakaan Kerja");XLSX.writeFile(wb,"Kecelakaan_Kerja_CDC_Plant2.xlsx")}
 function dlj(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:"application/json"}));a.download="data.json";a.click()}
