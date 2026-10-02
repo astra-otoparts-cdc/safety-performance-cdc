@@ -98,7 +98,7 @@ th{background:var(--navy);color:#fff}.c{text-align:center}
 
  <div id="adm" class="adm hide">
   <div class="box top"><b>Kelola Data Kecelakaan</b>
-   <div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="openForm()">+ Tambah Kecelakaan</button><button class="n" onclick="dl()">Download Excel</button><button class="w" style="border:1px solid #b6c6de" onclick="dlj()">Unduh data.json</button></div></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="openForm()">+ Tambah Kecelakaan</button><button class="n" onclick="dl()">Download Excel</button></div></div>
   <div class="box"><b>Daftar Data Kecelakaan</b>
    <div class="flt">Filter : <select id="lm" onchange="pg=1;render()"></select><select id="ly" onchange="pg=1;render()"></select><span id="cnt" style="font-size:13px;color:#5a6477"></span></div>
    <div class="tw">
@@ -142,10 +142,9 @@ function digits(n,col){const s=String(Math.max(0,n)).padStart(2,"0");
  return `<svg viewBox="0 0 ${s.length*68-8} 100" fill="${col}">`+[...s].map((ch,i)=>`<g transform="translate(${i*68},0)">${[...SEG[ch]].map(k=>`<polygon points="${P[k]}"/>`).join("")}</g>`).join("")+`</svg>`}
 function load(){try{data=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){data=[]}}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}}
-async function remote(){try{const r=await fetch("data.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return null;const j=await r.json();return Array.isArray(j)?j:null}catch(e){return null}}
 async function init(){load();
  if(FB){const r=await fbGet();if(r!==undefined){if(r===null&&role==="admin"&&data.length){await fbSetAll()}else{data=r||[];persist()}render();return}}
- const j=await remote();if(j&&(role!=="admin"||!data.length)){data=j;if(role==="admin")persist()}render()}
+ render()}
 function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 async function login(){const u=$("u").value.trim(),x=USERS[u];
  if(x&&x.p===$("p").value){role=x.r;$("login").classList.add("hide");$("app").classList.remove("hide");
@@ -190,7 +189,6 @@ function edit(id){const d=data.find(x=>x.id===id);if(!d)return;editId=id;$("ftit
 async function del(id){if(confirm("Hapus data ini?")){data=data.filter(d=>d.id!==id);persist();render();if(!(await fbDel(id)))alert("Gagal menghapus di Firebase. Periksa koneksi internet dan rules database.")}}
 function dl(){const rows=[...data].sort((a,b)=>a.tgl.localeCompare(b.tgl)).map((d,i)=>({No:i+1,"Nama Karyawan":d.nama,"Tanggal Kejadian":d.tgl,"Jenis Kecelakaan":d.jenis,"Jumlah Hari Hilang (hari)":d.hari,Keterangan:d.ket}));
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Kecelakaan Kerja");XLSX.writeFile(wb,"Kecelakaan_Kerja_CDC_Plant2.xlsx")}
-function dlj(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:"application/json"}));a.download="data.json";a.click()}
 render();
 </script>
 </body>
