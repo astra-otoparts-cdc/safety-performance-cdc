@@ -218,17 +218,20 @@ async function del(id){if(confirm("Hapus data ini?")){data=data.filter(d=>d.id!=
 function dl(){const rows=[...data].sort((a,b)=>a.tgl.localeCompare(b.tgl)).map((d,i)=>({No:i+1,"Nama Karyawan":d.nama,"Tanggal Kejadian":d.tgl,"Jenis Kecelakaan":d.jenis,"Jumlah Hari Hilang (hari)":d.hari,Keterangan:d.ket}));
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Kecelakaan Kerja");XLSX.writeFile(wb,"Kecelakaan_Kerja_CDC_Plant2.xlsx")}
 /* Skala otomatis: hanya mengecil bila tinggi layar kurang; di layar yang cukup tinggi tampilan tidak berubah */
-function fit(){const m=$("pgD");if(!m||$("app").classList.contains("hide")||m.classList.contains("hide"))return;
- m.style.zoom=1;m.style.maxWidth="";
- if(innerWidth<=760||!(window.CSS&&CSS.supports("zoom","1")))return;
- const de=document.documentElement,over=()=>de.scrollHeight-innerHeight;
- if(over()<=1)return;
- const h=m.offsetHeight;let z=Math.max(.4,(h-over())/h);
- const ap=()=>{m.style.zoom=z;m.style.maxWidth=(1600/z)+"px"};ap();
- for(let i=0;i<20&&over()>1&&z>.4;i++){z=Math.max(.4,z*.97);ap()}}
-const _render=render;render=function(){_render();requestAnimationFrame(fit)};
+function fit(){const m=$("pgD"),de=document.documentElement;
+ const reset=()=>["zoom","maxWidth","width","height","margin","transform","transformOrigin"].forEach(k=>m.style[k]="");
+ de.style.overflowY="";if(!m||$("app").classList.contains("hide")||m.classList.contains("hide"))return;
+ reset();if(innerWidth<=760)return;
+ const over=()=>de.scrollHeight-innerHeight;
+ if(over()<=0){de.style.overflowY="hidden";return}
+ const ZOK=!window.__nozoom&&window.CSS&&CSS.supports&&CSS.supports("zoom","1"),W=de.clientWidth,VW=Math.min(W,1600);
+ const ap=z=>{reset();if(ZOK){m.style.zoom=z;m.style.maxWidth=(1600/z)+"px"}else{m.style.margin="0";m.style.maxWidth="none";m.style.width=(VW/z)+"px";m.style.transformOrigin="0 0";m.style.transform=`translateX(${(W-VW)/2}px) scale(${z})`;m.style.height=(m.offsetHeight*z)+"px"}};
+ const h=m.offsetHeight;let z=Math.max(.4,(h-over())/h);ap(z);
+ for(let i=0;i<30&&over()>0&&z>.4;i++){z=Math.max(.4,z*.97);ap(z)}
+ if(over()<=0)de.style.overflowY="hidden"}
+const _render=render;render=function(){_render();requestAnimationFrame(fit);setTimeout(fit,600)};
 const _tab=tab;tab=function(n){_tab(n);requestAnimationFrame(fit)};
-addEventListener("resize",fit);document.addEventListener("fullscreenchange",()=>setTimeout(fit,150));
+addEventListener("resize",fit);addEventListener("load",fit);document.addEventListener("fullscreenchange",()=>setTimeout(fit,150));
 
 let sv=null;try{sv=localStorage.getItem("cdc2_sess")}catch(e){}
 if(sv&&USERS[sv])enter(sv);else render();
