@@ -175,11 +175,12 @@ async function init(){load();
  render()}
 function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 async function login(){const u=$("u").value.trim(),x=USERS[u];
- if(x&&x.p===$("p").value){role=x.r;$("login").classList.add("hide");$("app").classList.remove("hide");
-  $("tabs").classList.toggle("hide",role!=="admin");tab(1);$("who").textContent=u;$("role").textContent=role;
-  await init();timer=setInterval(()=>{if(role==="dashboard"||(FB&&role==="admin"&&$("modal").classList.contains("hide")))init()},FB?30000:300000)}
+ if(x&&x.p===$("p").value){try{localStorage.setItem("cdc2_sess",u)}catch(e){}enter(u)}
  else $("err").textContent="Username atau password salah."}
-function logout(){role=null;clearInterval(timer);if(document.fullscreenElement)document.exitFullscreen();$("app").classList.add("hide");$("login").classList.remove("hide");$("u").value=$("p").value="";$("err").textContent=""}
+async function enter(u){const x=USERS[u];clearInterval(timer);{role=x.r;$("login").classList.add("hide");$("app").classList.remove("hide");
+  $("tabs").classList.toggle("hide",role!=="admin");tab(1);$("who").textContent=u;$("role").textContent=role;
+  await init();timer=setInterval(()=>{if(role==="dashboard"||(FB&&role==="admin"&&$("modal").classList.contains("hide")))init()},FB?30000:300000)}}
+function logout(){try{localStorage.removeItem("cdc2_sess")}catch(e){}role=null;clearInterval(timer);if(document.fullscreenElement)document.exitFullscreen();$("app").classList.add("hide");$("login").classList.remove("hide");$("u").value=$("p").value="";$("err").textContent=""}
 function fs(){try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}catch(e){}}
 document.addEventListener("fullscreenchange",()=>{$("fsb").textContent=document.fullscreenElement?"Keluar Layar Penuh":"Layar Penuh"});
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&!$("login").classList.contains("hide"))login()});
@@ -216,7 +217,8 @@ function edit(id){const d=data.find(x=>x.id===id);if(!d)return;editId=id;$("ftit
 async function del(id){if(confirm("Hapus data ini?")){data=data.filter(d=>d.id!==id);persist();render();if(!(await fbDel(id)))alert("Gagal menghapus di Firebase. Periksa koneksi internet dan rules database.")}}
 function dl(){const rows=[...data].sort((a,b)=>a.tgl.localeCompare(b.tgl)).map((d,i)=>({No:i+1,"Nama Karyawan":d.nama,"Tanggal Kejadian":d.tgl,"Jenis Kecelakaan":d.jenis,"Jumlah Hari Hilang (hari)":d.hari,Keterangan:d.ket}));
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Kecelakaan Kerja");XLSX.writeFile(wb,"Kecelakaan_Kerja_CDC_Plant2.xlsx")}
-render();
+let sv=null;try{sv=localStorage.getItem("cdc2_sess")}catch(e){}
+if(sv&&USERS[sv])enter(sv);else render();
 </script>
 </body>
 </html>
