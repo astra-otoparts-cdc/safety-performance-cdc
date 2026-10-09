@@ -217,6 +217,19 @@ function edit(id){const d=data.find(x=>x.id===id);if(!d)return;editId=id;$("ftit
 async function del(id){if(confirm("Hapus data ini?")){data=data.filter(d=>d.id!==id);persist();render();if(!(await fbDel(id)))alert("Gagal menghapus di Firebase. Periksa koneksi internet dan rules database.")}}
 function dl(){const rows=[...data].sort((a,b)=>a.tgl.localeCompare(b.tgl)).map((d,i)=>({No:i+1,"Nama Karyawan":d.nama,"Tanggal Kejadian":d.tgl,"Jenis Kecelakaan":d.jenis,"Jumlah Hari Hilang (hari)":d.hari,Keterangan:d.ket}));
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Kecelakaan Kerja");XLSX.writeFile(wb,"Kecelakaan_Kerja_CDC_Plant2.xlsx")}
+/* Skala otomatis: hanya mengecil bila tinggi layar kurang; di layar yang cukup tinggi tampilan tidak berubah */
+function fit(){const m=$("pgD");if(!m||$("app").classList.contains("hide")||m.classList.contains("hide"))return;
+ m.style.zoom=1;m.style.maxWidth="";
+ if(innerWidth<=760||!(window.CSS&&CSS.supports("zoom","1")))return;
+ const de=document.documentElement,over=()=>de.scrollHeight-innerHeight;
+ if(over()<=1)return;
+ const h=m.offsetHeight;let z=Math.max(.4,(h-over())/h);
+ const ap=()=>{m.style.zoom=z;m.style.maxWidth=(1600/z)+"px"};ap();
+ for(let i=0;i<20&&over()>1&&z>.4;i++){z=Math.max(.4,z*.97);ap()}}
+const _render=render;render=function(){_render();requestAnimationFrame(fit)};
+const _tab=tab;tab=function(n){_tab(n);requestAnimationFrame(fit)};
+addEventListener("resize",fit);document.addEventListener("fullscreenchange",()=>setTimeout(fit,150));
+
 let sv=null;try{sv=localStorage.getItem("cdc2_sess")}catch(e){}
 if(sv&&USERS[sv])enter(sv);else render();
 </script>
