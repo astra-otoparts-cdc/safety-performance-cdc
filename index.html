@@ -100,9 +100,10 @@ main{max-width:1600px}
 .pot li{display:flex;align-items:center;gap:12px}
 .pot li:before{content:"";flex:none;width:.6em;height:.6em;border-radius:50%;background:var(--acc)}
 @media(min-width:761px) and (max-width:1100px){.cards{grid-template-columns:1fr 1fr}.card:nth-child(3){grid-column:1/-1}}
-#sl{position:relative;width:100%;background:#000}
+#sl{position:relative;width:100%;background:radial-gradient(circle at 8% 0%,#fafcff,transparent 42%),radial-gradient(circle at 100% 100%,#cfe0f5,transparent 48%),var(--bg)}
 #sl .sv{position:absolute;inset:0;display:none}#sl .sv.on{display:block;animation:fd .5s ease both}
-#sl iframe,#sl img{width:100%;height:100%;border:0;object-fit:contain;display:block;background:#000}
+#sl iframe,#sl img{width:100%;height:100%;border:0;object-fit:contain;display:block;background:transparent}
+#sl .cv img{object-fit:cover}
 @keyframes fd{from{opacity:0}to{opacity:1}}
 #dots{position:fixed;right:14px;bottom:10px;display:flex;gap:7px;z-index:20;background:rgba(13,37,80,.5);padding:6px 10px;border-radius:20px}
 #dots i{width:9px;height:9px;border-radius:50%;background:#fff;opacity:.6;cursor:pointer}#dots i.on{background:var(--red);opacity:1}
@@ -111,6 +112,7 @@ main{max-width:1600px}
 .srow .th{width:90px;height:56px;border-radius:8px;background:#e9f0fa;display:grid;place-items:center;overflow:hidden;font-size:26px;flex:none}.srow .th img{width:100%;height:100%;object-fit:cover}
 .srow .mid{flex:1;min-width:200px}.srow small{color:#5a6477;display:block;margin-top:4px}
 .tgl{display:flex;align-items:center;gap:6px;font-size:14px;white-space:nowrap}.tgl input{width:auto}
+.fsel{width:auto;font-size:13px}
 button:disabled{opacity:.35;cursor:default}
 @media(max-width:760px){.cards,.r3{grid-template-columns:1fr}.dec{width:140px}.pill{font-size:12px}header img{height:30px}}
 </style>
@@ -168,7 +170,7 @@ button:disabled{opacity:.35;cursor:default}
   <div class="box"><div class="top"><b>Slide</b><span style="font-size:13px;color:#5a6477">Urutan dari atas ke bawah = urutan tampil</span></div>
    <div id="s_list"></div>
    <div class="grid" style="margin-top:14px">
-    <div><label>Unggah gambar baru (JPG/PNG)</label><input id="s_file" type="file" accept="image/*" multiple onchange="addImg(this)"></div>
+    <div><label>Unggah gambar baru (JPG/PNG) &mdash; ukuran ideal 1920 &times; 1010 px</label><input id="s_file" type="file" accept="image/*" multiple onchange="addImg(this)"></div>
     <div><label>Atau tambah dari link (Google Drive, Google Slides, halaman web)</label><div style="display:flex;gap:8px"><input id="s_url" placeholder="https://..."><button onclick="addUrl()">Tambah</button></div></div>
    </div></div>
   <div class="top"><div id="s_msg" style="font-size:14px"></div><button onclick="saveSet()">Simpan Pengaturan</button></div>
@@ -264,13 +266,13 @@ const DRIVE2="https://drive.google.com/file/d/1t-xwzMPsJLh0EpdqDQsVk3gt_BpQHa8V/
 const defCfg=()=>({interval:15,pset:0,potensi:[...DEFP],slides:[{id:"dash",type:"dash",title:"Safety Performance",on:true},{id:"s2",type:"embed",title:"Safety Golden Rules",url:DRIVE2,on:true}]});
 let cfg=defCfg(),cfgSig="",imgC={},tb=1,cur=0,slT=null,act=[],dr=null,pend={},delI=[];
 const arr=o=>Array.isArray(o)?o:(o&&typeof o==="object"?Object.values(o):[]);
-const key=x=>x.id+"|"+x.type+"|"+(x.url||"");
+const key=x=>x.id+"|"+x.type+"|"+(x.url||"")+"|"+(x.fit||"");
 function norm(c){const d=defCfg();if(!c||typeof c!=="object")return d;
  const o={interval:Math.max(3,+c.interval||d.interval),pset:c.pset?1:0};
  o.potensi=c.potensi?arr(c.potensi).map(String).filter(x=>x.trim()):(c.pset?[]:d.potensi);
  let sl=c.slides?arr(c.slides).filter(x=>x&&x.id&&x.type):d.slides;
  if(!sl.some(x=>x.type==="dash"))sl.unshift(d.slides[0]);
- o.slides=sl.map(x=>({id:String(x.id),type:x.type,title:x.title||"",url:x.url||"",on:x.on!==false}));return o}
+ o.slides=sl.map(x=>({id:String(x.id),type:x.type,title:x.title||"",url:x.url||"",fit:x.fit==="cover"?"cover":"contain",on:x.on!==false}));return o}
 async function loadCfg(){let c=null,got=false;
  if(FB){try{const r=await fetch(FB+"/settings.json",{cache:"no-store"});if(r.ok){c=await r.json();got=true}}catch(e){}}
  if(got){try{localStorage.setItem("cdc2_cfg",JSON.stringify(c))}catch(e){}}else{try{c=JSON.parse(localStorage.getItem("cdc2_cfg")||"null")}catch(e){}}
@@ -279,6 +281,7 @@ function applyCfg(){const sig=JSON.stringify(cfg);if(sig===cfgSig)return;cfgSig=
  $("pot").innerHTML=cfg.potensi.map(x=>`<li>${esc(x)}</li>`).join("");
  const prev=act[cur]&&act[cur].id;act=cfg.slides.filter(x=>x.on);if(!act.length)act=[cfg.slides.find(x=>x.type==="dash")];
  const ni=act.findIndex(x=>x.id===prev);cur=ni>=0?ni:0;syncStage();show(cur)}
+function driveId(u){const m=(u||"").match(/drive\.google\.com\/file\/d\/([\w-]+)/)||(u||"").match(/drive\.google\.com\/open\?id=([\w-]+)/);return m?m[1]:null}
 function embedUrl(u){u=(u||"").trim();let m=u.match(/drive\.google\.com\/file\/d\/([\w-]+)/)||u.match(/drive\.google\.com\/open\?id=([\w-]+)/);
  if(m)return`https://drive.google.com/file/d/${m[1]}/preview`;
  m=u.match(/docs\.google\.com\/presentation\/d\/([\w-]+)/);if(m)return`https://docs.google.com/presentation/d/${m[1]}/embed?start=false&loop=false`;return u}
@@ -289,7 +292,10 @@ async function getImg(id){if(imgC[id])return imgC[id];let u=null;
 function syncStage(){const st=$("sl"),want=act.filter(x=>x.type!=="dash");
  [...st.children].forEach(n=>{if(!want.some(x=>key(x)===n.dataset.k))n.remove()});
  want.forEach(x=>{if([...st.children].some(n=>n.dataset.k===key(x)))return;const d=document.createElement("div");d.className="sv";d.dataset.k=key(x);
-  if(x.type==="embed")d.innerHTML=`<iframe src="${esc(embedUrl(x.url))}" allow="autoplay;fullscreen" allowfullscreen></iframe>`;
+  if(x.fit==="cover")d.classList.add("cv");
+  const gd=x.type==="embed"&&driveId(x.url),ifr=()=>{d.innerHTML=`<iframe src="${esc(embedUrl(x.url))}" allow="autoplay;fullscreen" allowfullscreen></iframe>`};
+  if(gd){d.innerHTML=`<img alt="" src="https://drive.google.com/thumbnail?id=${gd}&sz=w2000">`;d.firstChild.onerror=ifr}
+  else if(x.type==="embed")ifr();
   else{d.innerHTML="<img alt=''>";getImg(x.id).then(u=>{if(u)d.firstChild.src=u})}
   st.appendChild(d)})}
 function szStage(){const e=$("sl");if(e.classList.contains("hide"))return;e.style.height=Math.max(100,innerHeight-e.getBoundingClientRect().top)+"px"}
@@ -309,17 +315,17 @@ function renderSet(){const L=dr.slides;
  $("s_list").innerHTML=L.map((x,i)=>`<div class="srow"><div class="mv"><button class="w" onclick="mv(${i},-1)" ${i==0?"disabled":""}>&#9650;</button><button class="w" onclick="mv(${i},1)" ${i==L.length-1?"disabled":""}>&#9660;</button></div>
  <div class="th">${x.type==="dash"?"&#128202;":x.type==="embed"?"&#128279;":`<img id="th_${x.id}" alt="">`}</div>
  <div class="mid"><input value="${esc(x.title)}" placeholder="Judul slide" oninput="dr.slides[${i}].title=this.value">${x.type==="embed"?`<input value="${esc(x.url)}" placeholder="Link" oninput="dr.slides[${i}].url=this.value" style="margin-top:6px">`:`<small>${x.type==="dash"?"Dashboard Safety Performance (bawaan)":"Gambar unggahan"}</small>`}</div>
- <label class="tgl"><input type="checkbox" ${x.on?"checked":""} onchange="dr.slides[${i}].on=this.checked"> Tampil</label>${x.type==="dash"?"":`<button class="r" onclick="rm(${i})">Hapus</button>`}</div>`).join("");
+ ${x.type==="dash"?"":`<select class="fsel" onchange="dr.slides[${i}].fit=this.value" title="Tampilan gambar"><option value="contain" ${x.fit!=="cover"?"selected":""}>Pas layar (utuh)</option><option value="cover" ${x.fit==="cover"?"selected":""}>Isi layar (terpotong)</option></select>`}<label class="tgl"><input type="checkbox" ${x.on?"checked":""} onchange="dr.slides[${i}].on=this.checked"> Tampil</label>${x.type==="dash"?"":`<button class="r" onclick="rm(${i})">Hapus</button>`}</div>`).join("");
  L.filter(x=>x.type==="image").forEach(x=>{const set=u=>{const e=$("th_"+x.id);if(e&&u)e.src=u};const u=pend[x.id]||imgC[x.id];u?set(u):getImg(x.id).then(set)})}
 function mv(i,d){const L=dr.slides,j=i+d;if(j<0||j>=L.length)return;[L[i],L[j]]=[L[j],L[i]];renderSet()}
 function rm(i){const x=dr.slides[i];if(!confirm('Hapus slide "'+(x.title||"tanpa judul")+'"?'))return;if(x.type==="image"){delI.push(x.id);delete pend[x.id]}dr.slides.splice(i,1);renderSet()}
 const nid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 function compress(f){return new Promise(res=>{const im=new Image(),u=URL.createObjectURL(f);im.onload=()=>{const k=Math.min(1,1920/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",.82))};im.onerror=()=>res(null);im.src=u})}
-async function addImg(inp){for(const f of inp.files){const u=await compress(f);if(!u){alert("File "+f.name+" bukan gambar yang valid.");continue}const id=nid("i");pend[id]=u;imgC[id]=u;dr.slides.push({id,type:"image",title:f.name.replace(/\.[^.]+$/,""),url:"",on:true})}inp.value="";renderSet()}
-function addUrl(){const u=$("s_url").value.trim();if(!/^https?:\/\//i.test(u)){alert("Link harus diawali https://");return}dr.slides.push({id:nid("e"),type:"embed",title:"Slide baru",url:u,on:true});$("s_url").value="";renderSet()}
+async function addImg(inp){for(const f of inp.files){const u=await compress(f);if(!u){alert("File "+f.name+" bukan gambar yang valid.");continue}const id=nid("i");pend[id]=u;imgC[id]=u;dr.slides.push({id,type:"image",title:f.name.replace(/\.[^.]+$/,""),url:"",fit:"contain",on:true})}inp.value="";renderSet()}
+function addUrl(){const u=$("s_url").value.trim();if(!/^https?:\/\//i.test(u)){alert("Link harus diawali https://");return}dr.slides.push({id:nid("e"),type:"embed",title:"Slide baru",url:u,fit:"contain",on:true});$("s_url").value="";renderSet()}
 async function saveSet(){const m=$("s_msg"),bad=t=>{m.style.color="#c62828";m.textContent=t};m.style.color="#5a6477";m.textContent="Menyimpan...";
  const nc={interval:Math.max(3,Math.min(600,Math.round(+$("s_int").value)||15)),pset:1,potensi:$("s_pot").value.split("\n").map(x=>x.trim()).filter(Boolean),
-  slides:dr.slides.map(x=>({id:x.id,type:x.type,title:(x.title||"").trim(),url:x.type==="embed"?(x.url||"").trim():"",on:!!x.on}))};
+  slides:dr.slides.map(x=>({id:x.id,type:x.type,title:(x.title||"").trim(),url:x.type==="embed"?(x.url||"").trim():"",fit:x.fit==="cover"?"cover":"contain",on:!!x.on}))};
  if(nc.slides.some(x=>x.type==="embed"&&!/^https?:\/\//i.test(x.url)))return bad("Link slide harus diawali https://");
  let ok=true;
  try{for(const id of Object.keys(pend)){if(FB){const r=await fetch(`${FB}/slideimg/${id}.json`,{method:"PUT",body:JSON.stringify(pend[id])});if(!r.ok)ok=false}else localStorage.setItem("cdc2_img_"+id,pend[id]);imgC[id]=pend[id]}
