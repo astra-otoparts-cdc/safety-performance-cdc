@@ -105,7 +105,7 @@ main{max-width:1600px}
 #sl iframe,#sl img{width:100%;height:100%;border:0;object-fit:contain;display:block;background:transparent}
 #sl img{position:absolute;inset:0}
 #sl img.bg{object-fit:cover;filter:blur(30px) saturate(1.1);transform:scale(1.2)}
-#sl .cv img{object-fit:cover;object-position:50% 0}#sl .cv img.bg{display:none}
+#sl .cv img.fg{inset:auto;top:0;left:0;width:100%;height:auto;object-fit:fill}
 @keyframes fd{from{opacity:0}to{opacity:1}}
 #dots{position:fixed;right:14px;bottom:10px;display:flex;gap:7px;z-index:20;background:rgba(13,37,80,.5);padding:6px 10px;border-radius:20px}
 #dots i{width:9px;height:9px;border-radius:50%;background:#fff;opacity:.6;cursor:pointer}#dots i.on{background:var(--red);opacity:1}
@@ -318,7 +318,7 @@ function renderSet(){const L=dr.slides;
  $("s_list").innerHTML=L.map((x,i)=>`<div class="srow"><div class="mv"><button class="w" onclick="mv(${i},-1)" ${i==0?"disabled":""}>&#9650;</button><button class="w" onclick="mv(${i},1)" ${i==L.length-1?"disabled":""}>&#9660;</button></div>
  <div class="th">${x.type==="dash"?"&#128202;":x.type==="embed"?"&#128279;":`<img id="th_${x.id}" alt="">`}</div>
  <div class="mid"><input value="${esc(x.title)}" placeholder="Judul slide" oninput="dr.slides[${i}].title=this.value">${x.type==="embed"?`<input value="${esc(x.url)}" placeholder="Link" oninput="dr.slides[${i}].url=this.value" style="margin-top:6px">`:`<small>${x.type==="dash"?"Dashboard Safety Performance (bawaan)":"Gambar unggahan"}</small>`}</div>
- ${x.type==="dash"?"":`<select class="fsel" onchange="dr.slides[${i}].fit=this.value" title="Tampilan gambar"><option value="cover" ${x.fit!=="contain"?"selected":""}>Isi layar (bagian bawah dipotong)</option><option value="contain" ${x.fit==="contain"?"selected":""}>Pas layar (utuh, tepi latar buram)</option></select>`}<label class="tgl"><input type="checkbox" ${x.on?"checked":""} onchange="dr.slides[${i}].on=this.checked"> Tampil</label>${x.type==="dash"?"":`<button class="r" onclick="rm(${i})">Hapus</button>`}</div>`).join("");
+ ${x.type==="dash"?"":`<select class="fsel" onchange="dr.slides[${i}].fit=this.value" title="Tampilan gambar"><option value="cover" ${x.fit!=="contain"?"selected":""}>Penuh lebar (bagian bawah dipotong bila perlu)</option><option value="contain" ${x.fit==="contain"?"selected":""}>Pas layar (utuh, tepi latar buram)</option></select>`}<label class="tgl"><input type="checkbox" ${x.on?"checked":""} onchange="dr.slides[${i}].on=this.checked"> Tampil</label>${x.type==="dash"?"":`<button class="r" onclick="rm(${i})">Hapus</button>`}</div>`).join("");
  L.filter(x=>x.type==="image").forEach(x=>{const set=u=>{const e=$("th_"+x.id);if(e&&u)e.src=u};const u=pend[x.id]||imgC[x.id];u?set(u):getImg(x.id).then(set)})}
 function mv(i,d){const L=dr.slides,j=i+d;if(j<0||j>=L.length)return;[L[i],L[j]]=[L[j],L[i]];renderSet()}
 function rm(i){const x=dr.slides[i];if(!confirm('Hapus slide "'+(x.title||"tanpa judul")+'"?'))return;if(x.type==="image"){delI.push(x.id);delete pend[x.id]}dr.slides.splice(i,1);renderSet()}
